@@ -23,12 +23,15 @@
  */
 package net.kyori.adventure.text.minimessage;
 
+import java.util.Objects;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.ComponentLike;
 import net.kyori.examination.Examinable;
 import net.kyori.examination.ExaminableProperty;
 import net.kyori.examination.string.StringExaminer;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -44,9 +47,12 @@ public interface Template extends Examinable {
    * @param value the value to replace the key with
    * @return the constructed template
    * @since 4.0.0
+   * @deprecated For removal since 4.2.0, use {@link #template(String, String)}.
    */
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
   static @NotNull Template of(final @NotNull String key, final @NotNull String value) {
-    return new StringTemplate(key, value);
+    return template(key, value);
   }
 
   /**
@@ -56,9 +62,51 @@ public interface Template extends Examinable {
    * @param value the component to replace the key with
    * @return the constructed template
    * @since 4.0.0
+   * @deprecated For removal since 4.2.0, use {@link #template(String, ComponentLike)}
    */
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
   static @NotNull Template of(final @NotNull String key, final @NotNull Component value) {
-    return new ComponentTemplate(key, value);
+    return template(key, value);
+  }
+
+  /**
+   * Constructs a template that gets replaced with a component lazily.
+   *
+   * @param key the placeholder
+   * @param value the supplier that supplies the component to replace the key with
+   * @return the constructed template
+   * @since 4.2.0
+   * @deprecated For removal since 4.2.0, use {@link #template(String, Supplier)}
+   */
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
+  static @NotNull Template of(final @NotNull String key, final @NotNull Supplier<Component> value) {
+    return template(key, value);
+  }
+
+  /**
+   * Constructs a template that gets replaced with a string.
+   *
+   * @param key the placeholder
+   * @param value the value to replace the key with
+   * @return the constructed template
+   * @since 4.2.0
+   */
+  static @NotNull Template template(final @NotNull String key, final @NotNull String value) {
+    return new StringTemplate(Objects.requireNonNull(key, "key"), Objects.requireNonNull(value, "value"));
+  }
+
+  /**
+   * Constructs a template that gets replaced with a component.
+   *
+   * @param key the placeholder
+   * @param value the component to replace the key with
+   * @return the constructed template
+   * @since 4.2.0
+   */
+  static @NotNull Template template(final @NotNull String key, final @NotNull ComponentLike value) {
+    return new ComponentTemplate(Objects.requireNonNull(key, "key"), Objects.requireNonNull(value, "value").asComponent());
   }
 
   /**
@@ -69,8 +117,8 @@ public interface Template extends Examinable {
    * @return the constructed template
    * @since 4.2.0
    */
-  static @NotNull Template of(final @NotNull String key, final @NotNull Supplier<Component> value) {
-    return new LazyComponentTemplate(key, value);
+  static @NotNull Template template(final @NotNull String key, final @NotNull Supplier<? extends ComponentLike> value) {
+    return new LazyComponentTemplate(Objects.requireNonNull(key, "key"), Objects.requireNonNull(value, "value"));
   }
 
   /**
@@ -171,16 +219,16 @@ public interface Template extends Examinable {
    * @since 4.2.0
    */
   class LazyComponentTemplate extends ComponentTemplate {
-    private final @NotNull Supplier<Component> value;
+    private final @NotNull Supplier<? extends ComponentLike> value;
 
-    public LazyComponentTemplate(final @NotNull String key, final @NotNull Supplier<Component> value) {
+    public LazyComponentTemplate(final @NotNull String key, final @NotNull Supplier<? extends ComponentLike> value) {
       super(key, Component.empty());
       this.value = value;
     }
 
     @Override
     public @NotNull Component value() {
-      return this.value.get();
+      return this.value.get().asComponent();
     }
 
     @Override

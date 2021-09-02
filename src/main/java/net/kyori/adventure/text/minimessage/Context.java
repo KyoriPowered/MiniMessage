@@ -25,8 +25,8 @@ package net.kyori.adventure.text.minimessage;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.parser.node.ElementNode;
+import net.kyori.adventure.text.minimessage.template.TemplateResolver;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Carries needed context for minimessage around, ranging from debug info to the configured minimessage instance.
@@ -40,16 +40,16 @@ public class Context {
   private final String ogMessage;
   private String replacedMessage;
   private final MiniMessageImpl miniMessage;
-  private final @NotNull Template @Nullable [] templates;
+  private final TemplateResolver templateResolver;
 
-  Context(final boolean strict, final Appendable debugOutput, final ElementNode root, final String ogMessage, final String replacedMessage, final MiniMessageImpl miniMessage, final @NotNull Template @Nullable [] templates) {
+  Context(final boolean strict, final Appendable debugOutput, final ElementNode root, final String ogMessage, final String replacedMessage, final MiniMessageImpl miniMessage, final @NotNull TemplateResolver templateResolver) {
     this.strict = strict;
     this.debugOutput = debugOutput;
     this.root = root;
     this.ogMessage = ogMessage;
     this.replacedMessage = replacedMessage;
     this.miniMessage = miniMessage;
-    this.templates = templates;
+    this.templateResolver = templateResolver;
   }
 
   /**
@@ -62,7 +62,7 @@ public class Context {
    * @since 4.1.0
    */
   public static Context of(final boolean strict, final String input, final MiniMessageImpl miniMessage) {
-    return new Context(strict, null, null, input, null, miniMessage, null);
+    return new Context(strict, null, null, input, null, miniMessage, TemplateResolver.empty());
   }
 
   /**
@@ -76,7 +76,7 @@ public class Context {
    * @since 4.1.0
    */
   public static Context of(final boolean strict, final Appendable debugOutput, final String input, final MiniMessageImpl miniMessage) {
-    return new Context(strict, debugOutput, null, input, null, miniMessage, null);
+    return new Context(strict, debugOutput, null, input, null, miniMessage, TemplateResolver.empty());
   }
 
   /**
@@ -85,12 +85,12 @@ public class Context {
    * @param strict if strict mode is enabled
    * @param input the input message
    * @param miniMessage the minimessage instance
-   * @param templates the templates passed to minimessage
+   * @param templateResolver the templates passed to minimessage
    * @return the debug context
    * @since 4.1.0
    */
-  public static Context of(final boolean strict, final String input, final MiniMessageImpl miniMessage, @NotNull final Template @Nullable [] templates) {
-    return new Context(strict, null, null, input, null, miniMessage, templates);
+  public static Context of(final boolean strict, final String input, final MiniMessageImpl miniMessage, @NotNull final TemplateResolver templateResolver) {
+    return new Context(strict, null, null, input, null, miniMessage, templateResolver);
   }
 
   /**
@@ -100,12 +100,12 @@ public class Context {
    * @param debugOutput where to print debug output
    * @param input the input message
    * @param miniMessage the minimessage instance
-   * @param templates the templates passed to minimessage
+   * @param templateResolver the templates passed to minimessage
    * @return the debug context
    * @since 4.2.0
    */
-  public static Context of(final boolean strict, final Appendable debugOutput, final String input, final MiniMessageImpl miniMessage, @NotNull final Template @Nullable [] templates) {
-    return new Context(strict, debugOutput, null, input, null, miniMessage, templates);
+  public static Context of(final boolean strict, final Appendable debugOutput, final String input, final MiniMessageImpl miniMessage, @NotNull final TemplateResolver templateResolver) {
+    return new Context(strict, debugOutput, null, input, null, miniMessage, templateResolver);
   }
 
   /**
@@ -189,6 +189,16 @@ public class Context {
   }
 
   /**
+   * Returns template resolver.
+   *
+   * @return templateResolver
+   * @since 4.2.0
+   */
+  public TemplateResolver templateResolver() {
+    return this.templateResolver;
+  }
+
+  /**
    * Parses a MiniMessage using all the settings of this context, including templates.
    *
    * @param message the message to parse
@@ -196,10 +206,6 @@ public class Context {
    * @since 4.1.0
    */
   public Component parse(final String message) {
-    if (this.templates != null) {
-      return this.miniMessage.parse(message, this.templates);
-    } else {
-      return this.miniMessage.parse(message);
-    }
+    return this.miniMessage.parser.parseFormat(message, this);
   }
 }

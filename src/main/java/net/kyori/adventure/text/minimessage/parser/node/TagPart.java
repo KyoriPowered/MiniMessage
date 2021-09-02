@@ -27,6 +27,8 @@ import java.util.Map;
 import net.kyori.adventure.text.minimessage.Template;
 import net.kyori.adventure.text.minimessage.parser.Token;
 import net.kyori.adventure.text.minimessage.parser.TokenParser;
+import net.kyori.adventure.text.minimessage.template.TemplateResolver;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -44,7 +46,10 @@ public final class TagPart {
    * @param sourceMessage the source message
    * @param token the token that creates this tag part
    * @since 4.2.0
+   * @deprecated For removal since 4.2.0, use {@link #TagPart(String, Token, TemplateResolver)} with {@link TemplateResolver#pairs(Map)}
    */
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
   public TagPart(
     final @NotNull String sourceMessage,
     final @NotNull Token token,
@@ -54,6 +59,31 @@ public final class TagPart {
     if (isTag(v)) {
       final String text = v.substring(1, v.length() - 1);
       final Template template = templates.get(text);
+      if (template instanceof Template.StringTemplate) {
+        v = ((Template.StringTemplate) template).value();
+      }
+    }
+
+    this.value = v;
+    this.token = token;
+  }
+
+  /**
+   * Constructs a new tag part.
+   *
+   * @param sourceMessage the source message
+   * @param token the token that creates this tag part
+   * @since 4.2.0
+   */
+  public TagPart(
+    final @NotNull String sourceMessage,
+    final @NotNull Token token,
+    final @NotNull TemplateResolver templateResolver
+  ) {
+    String v = unquoteAndEscape(sourceMessage, token.startIndex(), token.endIndex());
+    if (isTag(v)) {
+      final String text = v.substring(1, v.length() - 1);
+      final Template template = templateResolver.resolve(text);
       if (template instanceof Template.StringTemplate) {
         v = ((Template.StringTemplate) template).value();
       }

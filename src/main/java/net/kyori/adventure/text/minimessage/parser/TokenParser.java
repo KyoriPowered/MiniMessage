@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
-import java.util.Map;
 import java.util.function.BiPredicate;
 import java.util.function.Function;
 import net.kyori.adventure.text.minimessage.Template;
@@ -37,6 +36,7 @@ import net.kyori.adventure.text.minimessage.parser.node.TagNode;
 import net.kyori.adventure.text.minimessage.parser.node.TagPart;
 import net.kyori.adventure.text.minimessage.parser.node.TemplateNode;
 import net.kyori.adventure.text.minimessage.parser.node.TextNode;
+import net.kyori.adventure.text.minimessage.template.TemplateResolver;
 import net.kyori.adventure.text.minimessage.transformation.Inserting;
 import net.kyori.adventure.text.minimessage.transformation.Transformation;
 import org.jetbrains.annotations.NotNull;
@@ -61,7 +61,7 @@ public final class TokenParser {
   public static ElementNode parse(
     final @NotNull Function<TagNode, @Nullable Transformation> transformationFactory,
     final @NotNull BiPredicate<String, Boolean> tagNameChecker,
-    final @NotNull Map<String, Template> templates,
+    final @NotNull TemplateResolver templateResolver,
     final @NotNull String message,
     final boolean strict,
     final boolean recursivelyResolveStringPlaceholders
@@ -69,7 +69,7 @@ public final class TokenParser {
     final List<Token> tokens = parseFirstPass(message);
     parseSecondPass(message, tokens);
 
-    return buildTree(transformationFactory, tagNameChecker, templates, tokens, message, strict, recursivelyResolveStringPlaceholders);
+    return buildTree(transformationFactory, tagNameChecker, templateResolver, tokens, message, strict, recursivelyResolveStringPlaceholders);
   }
 
   /*
@@ -279,7 +279,7 @@ public final class TokenParser {
   private static ElementNode buildTree(
     final @NotNull Function<TagNode, @Nullable Transformation> transformationFactory,
     final @NotNull BiPredicate<String, Boolean> tagNameChecker,
-    final @NotNull Map<String, Template> templates,
+    final @NotNull TemplateResolver templateResolver,
     final @NotNull List<Token> tokens,
     final @NotNull String message,
     final boolean strict,
@@ -296,7 +296,7 @@ public final class TokenParser {
           break;
 
         case OPEN_TAG:
-          final TagNode tagNode = new TagNode(node, token, message, templates);
+          final TagNode tagNode = new TagNode(node, token, message, templateResolver);
           if (tagNode.name().equals("reset")) {
             // <reset> tags get special treatment and don't appear in the tree
             // instead, they close all currently open tags
@@ -311,12 +311,12 @@ public final class TokenParser {
 
             continue;
           } else {
-            final Template template = templates.get(tagNode.name());
+            final Template template = templateResolver.resolve(tagNode.name());
             if (template instanceof Template.StringTemplate) {
               final String value = ((Template.StringTemplate) template).value();
 
               if (recursivelyResolveStringPlaceholders) {
-                node.addChild(TokenParser.parse(transformationFactory, tagNameChecker, templates, value, strict, false));
+                node.addChild(TokenParser.parse(transformationFactory, tagNameChecker, templateResolver, value, strict, false));
               } else {
                 node.addChild(new TemplateNode(node, token, message, value));
               }

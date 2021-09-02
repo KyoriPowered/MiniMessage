@@ -27,6 +27,7 @@ import java.util.UUID;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.junit.jupiter.api.Test;
@@ -1261,5 +1262,17 @@ public class MiniMessageParserTest extends TestBase {
   @Test
   void testPlaceholderInsidePlaceholder() {
     this.assertParsedEquals(text("meow"), "<sound>", "sound", "<cat>", "cat", "meow");
+  }
+
+  // GH-143
+  @Test
+  void testStringPlaceholderInClickEvent() {
+    final String input = "<click:run_command:'say <sound>'>Click me!";
+    final Component expected = text()
+            .content("Click me!")
+            .clickEvent(ClickEvent.runCommand("say meow"))
+            .build();
+
+    this.assertParsedEquals(expected, input, "sound", "meow");
   }
 }
