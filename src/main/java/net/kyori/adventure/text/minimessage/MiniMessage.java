@@ -30,9 +30,11 @@ import java.util.function.Function;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.ComponentLike;
 import net.kyori.adventure.text.minimessage.markdown.MarkdownFlavor;
+import net.kyori.adventure.text.minimessage.template.TemplateResolver;
 import net.kyori.adventure.text.minimessage.transformation.TransformationRegistry;
 import net.kyori.adventure.text.serializer.ComponentSerializer;
 import net.kyori.adventure.util.Buildable;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -76,7 +78,7 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
    * @since 4.0.0
    */
   static @NotNull MiniMessage withMarkdownFlavor(final MarkdownFlavor markdownFlavor) {
-    return new MiniMessageImpl(true, markdownFlavor, TransformationRegistry.builder().build(), MiniMessageImpl.DEFAULT_PLACEHOLDER_RESOLVER, false, null, MiniMessageImpl.DEFAULT_ERROR_CONSUMER);
+    return new MiniMessageImpl(true, markdownFlavor, TransformationRegistry.builder().build(), TemplateResolver.empty(), false, null, MiniMessageImpl.DEFAULT_ERROR_CONSUMER);
   }
 
   /**
@@ -119,8 +121,13 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
    * @param placeholders the placeholders
    * @return the output component
    * @since 4.1.0
+   * @deprecated For removal since 4.2.0, use {@link #parse(String, TemplateResolver)} with {@link TemplateResolver#resolving(Object...)}
    */
-  @NotNull Component parse(final @NotNull String input, final @NotNull String... placeholders);
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
+  default @NotNull Component parse(final @NotNull String input, final @NotNull String... placeholders) {
+    return this.parse(input, TemplateResolver.resolving((Object[]) placeholders));
+  }
 
   /**
    * Parses a string into an component, allows passing placeholders in key value pairs.
@@ -129,8 +136,13 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
    * @param placeholders the placeholders
    * @return the output component
    * @since 4.1.0
+   * @deprecated For removal since 4.2.0, use {@link #parse(String, TemplateResolver)} with {@link TemplateResolver#pairs(Map)}
    */
-  @NotNull Component parse(final @NotNull String input, final @NotNull Map<String, String> placeholders);
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
+  default @NotNull Component parse(final @NotNull String input, final @NotNull Map<String, String> placeholders) {
+    return this.parse(input, TemplateResolver.pairs(placeholders));
+  }
 
   /**
    * Parses a string into an component, allows passing placeholders using key component pairs.
@@ -139,8 +151,13 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
    * @param placeholders the placeholders
    * @return the output component
    * @since 4.1.0
+   * @deprecated For removal since 4.2.0, use {@link #parse(String, TemplateResolver)} with {@link TemplateResolver#resolving(Object...)}
    */
-  @NotNull Component parse(@NotNull String input, @NotNull Object... placeholders);
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
+  default @NotNull Component parse(@NotNull String input, @NotNull Object... placeholders) {
+    return this.parse(input, TemplateResolver.resolving(placeholders));
+  }
 
   /**
    * Parses a string into an component, allows passing placeholders using templates (which support components).
@@ -150,8 +167,13 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
    * @param placeholders the placeholders
    * @return the output component
    * @since 4.0.0
+   * @deprecated For removal since 4.2.0, use {@link #parse(String, TemplateResolver)} with {@link TemplateResolver#templates(Template...)}
    */
-  @NotNull Component parse(final @NotNull String input, final @NotNull Template... placeholders);
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
+  default @NotNull Component parse(final @NotNull String input, final @NotNull Template... placeholders) {
+    return this.parse(input, TemplateResolver.templates(placeholders));
+  }
 
   /**
    * Parses a string into an component, allows passing placeholders using templates (which support components).
@@ -161,8 +183,26 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
    * @param placeholders the placeholders
    * @return the output component
    * @since 4.0.0
+   * @deprecated For removal since 4.2.0, use {@link #parse(String, TemplateResolver)} with {@link TemplateResolver#templates(Iterable)}
    */
-  @NotNull Component parse(final @NotNull String input, final @NotNull List<Template> placeholders);
+  @ApiStatus.ScheduledForRemoval
+  @Deprecated
+  default @NotNull Component parse(final @NotNull String input, final @NotNull List<Template> placeholders) {
+    return this.parse(input, TemplateResolver.templates(placeholders));
+  }
+
+  /**
+   * Parses a string into a component, allows passing placeholders using a template resolver (which support components).
+   * MiniMessage parses placeholders from following syntax: {@code <placeholder_name>} where placeholder_name is {@link Template#key()}.
+   *
+   * <p>Any templates provided by this resolver will have priority over templates provided by a resolver in the builder.</p>
+   *
+   * @param input the input string
+   * @param templateResolver the template resolver
+   * @return the output component
+   * @since 4.2.0
+   */
+  @NotNull Component parse(final @NotNull String input, final @NotNull TemplateResolver templateResolver);
 
   /**
    * Creates a new {@link MiniMessage.Builder}.
@@ -215,8 +255,23 @@ public interface MiniMessage extends ComponentSerializer<Component, Component, S
      * @param placeholderResolver the markdown flavor to use
      * @return this builder
      * @since 4.1.0
+     * @deprecated For removal since 4.2.0, use {@link #templateResolver(TemplateResolver)} with {@link TemplateResolver#dynamic(Function)}
      */
-    @NotNull Builder placeholderResolver(final Function<String, ComponentLike> placeholderResolver);
+    @Deprecated
+    default @NotNull Builder placeholderResolver(final Function<String, ComponentLike> placeholderResolver) {
+      return this.templateResolver(placeholderResolver == null ? null : TemplateResolver.dynamic(placeholderResolver));
+    }
+
+    /**
+     * Sets the template resolver.
+     *
+     * <p>Any template resolver provided as a parameter to the parse method will take priority over templates resolved by this resolver.</p>
+     *
+     * @param templateResolver the template resolver
+     * @return this builder
+     * @since 4.2.0
+     */
+    @NotNull Builder templateResolver(final TemplateResolver templateResolver);
 
     /**
      * Allows to enable strict mode (disabled by default)

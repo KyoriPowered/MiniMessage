@@ -26,12 +26,16 @@ package net.kyori.adventure.text.minimessage.transformation.inbuild;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Stream;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.minimessage.Template;
 import net.kyori.adventure.text.minimessage.Tokens;
 import net.kyori.adventure.text.minimessage.parser.ParsingException;
 import net.kyori.adventure.text.minimessage.parser.node.TagPart;
+import net.kyori.adventure.text.minimessage.template.TemplateResolver;
 import net.kyori.adventure.text.minimessage.transformation.Transformation;
 import net.kyori.adventure.text.minimessage.transformation.TransformationParser;
 import net.kyori.examination.ExaminableProperty;
@@ -43,6 +47,8 @@ import org.jetbrains.annotations.NotNull;
  * @since 4.1.0
  */
 public final class ClickTransformation extends Transformation {
+  private static final Pattern TEMPLATE_PATTERN = Pattern.compile("<(.+?)>");
+
   private ClickEvent.Action action;
   private String value;
 
@@ -66,7 +72,22 @@ public final class ClickTransformation extends Transformation {
 
     if (args.size() == 2) {
       this.action = ClickEvent.Action.NAMES.value(args.get(0).value().toLowerCase(Locale.ROOT));
-      this.value = args.get(1).value();
+
+      final String value = args.get(1).value();
+      final Matcher matcher = TEMPLATE_PATTERN.matcher(value);
+      final StringBuffer buffer = new StringBuffer(value.length());
+      final TemplateResolver resolver = this.context.templateResolver();
+      while (matcher.find()) {
+        final String match = matcher.group(1);
+        final Template template = resolver.resolve(match);
+
+        if (template instanceof Template.StringTemplate) {
+          matcher.appendReplacement(buffer, ((Template.StringTemplate) template).value());
+        }
+      }
+      matcher.appendTail(buffer);
+
+      this.value = buffer.toString();
     } else {
       throw new ParsingException("Don't know how to turn " + args + " into a click event", this.argTokenArray());
     }
