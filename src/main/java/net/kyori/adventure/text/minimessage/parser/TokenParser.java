@@ -64,12 +64,13 @@ public final class TokenParser {
     final @NotNull BiPredicate<String, Boolean> tagNameChecker,
     final @NotNull Map<String, Template> templates,
     final @NotNull String message,
-    final boolean strict
+    final boolean strict,
+    final boolean recursivelyResolveStringPlaceholders
   ) {
     final List<Token> tokens = parseFirstPass(message);
     parseSecondPass(message, tokens);
 
-    return buildTree(transformationFactory, tagNameChecker, templates, tokens, message, strict);
+    return buildTree(transformationFactory, tagNameChecker, templates, tokens, message, strict, recursivelyResolveStringPlaceholders);
   }
 
   /*
@@ -317,7 +318,8 @@ public final class TokenParser {
     final @NotNull Map<String, Template> templates,
     final @NotNull List<Token> tokens,
     final @NotNull String message,
-    final boolean strict
+    final boolean strict,
+    final boolean recursivelyResolveStringPlaceholders
   ) {
     final RootNode root = new RootNode(message);
     ElementNode node = root;
@@ -347,8 +349,13 @@ public final class TokenParser {
           } else {
             final Template template = templates.get(tagNode.name());
             if (template instanceof Template.StringTemplate) {
-              // String templates are inserted into the tree as raw text nodes, not parsed
-              node.addChild(new TemplateNode(node, token, message, ((Template.StringTemplate) template).value()));
+              final String value = ((Template.StringTemplate) template).value();
+
+              if (recursivelyResolveStringPlaceholders) {
+                node.addChild(TokenParser.parse(transformationFactory, tagNameChecker, templates, value, strict, false));
+              } else {
+                node.addChild(new TemplateNode(node, token, message, value));
+              }
             } else if (tagNameChecker.test(tagNode.name(), true)) {
               final Transformation transformation = transformationFactory.apply(tagNode);
               if (transformation == null) {
